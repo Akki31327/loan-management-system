@@ -19,7 +19,26 @@ class CollectionController extends Controller
 
     public function index(Request $request)
     {
-        $query = Collection::with(['loan', 'collector']);
+        $user = auth()->user();
+
+        $query = Collection::with([
+            'loan',
+            'collector'
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | ROLE FILTER
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role === 'field_agent') {
+
+            $query->where(
+                'collected_by',
+                $user->id
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -29,7 +48,10 @@ class CollectionController extends Controller
 
         if ($request->payment_mode) {
 
-            $query->where('payment_mode', $request->payment_mode);
+            $query->where(
+                'payment_mode',
+                $request->payment_mode
+            );
         }
 
         /*
@@ -40,22 +62,38 @@ class CollectionController extends Controller
 
         if ($request->date) {
 
-            $query->whereDate('collected_at', $request->date);
+            $query->whereDate(
+                'collected_at',
+                $request->date
+            );
         }
 
-        $collections = $query->latest()->paginate(10);
+        $collections =
+            $query->latest()->paginate(10);
 
         return response()->json([
-            'status' => true,
-            'message' => 'Collection list fetched successfully',
 
-            'data' => $collections->items(),
+            'status' => true,
+
+            'message' =>
+                'Collection list fetched successfully',
+
+            'data' =>
+                $collections->items(),
 
             'pagination' => [
-                'current_page' => $collections->currentPage(),
-                'last_page' => $collections->lastPage(),
-                'per_page' => $collections->perPage(),
-                'total' => $collections->total(),
+
+                'current_page' =>
+                    $collections->currentPage(),
+
+                'last_page' =>
+                    $collections->lastPage(),
+
+                'per_page' =>
+                    $collections->perPage(),
+
+                'total' =>
+                    $collections->total(),
             ]
 
         ], 200);
@@ -94,6 +132,23 @@ class CollectionController extends Controller
 
             /*
             |--------------------------------------------------------------------------
+            | CHECK CLOSED LOAN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($loan->status === 'closed') {
+
+                return response()->json([
+
+                    'status' => false,
+
+                    'message' => 'Loan already closed'
+
+                ], 422);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
             | VALIDATE PENDING AMOUNT
             |--------------------------------------------------------------------------
             */
@@ -111,40 +166,49 @@ class CollectionController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | CREATE COLLECTION ENTRY
+            | CREATE COLLECTION
             |--------------------------------------------------------------------------
             */
 
             $collection = Collection::create([
 
-                'loan_id' => $loan->id,
+                'loan_id' =>
+                    $loan->id,
 
-                'collected_by' => auth()->id(),
+                'collected_by' =>
+                    auth()->id(),
 
-                'amount_paid' => $request->amount_paid,
+                'amount_paid' =>
+                    $request->amount_paid,
 
-                'payment_mode' => $request->payment_mode,
+                'payment_mode' =>
+                    $request->payment_mode,
 
-                'location' => $request->location,
+                'location' =>
+                    $request->location,
 
-                'remarks' => $request->remarks,
+                'remarks' =>
+                    $request->remarks,
 
-                'collected_at' => now()
+                'collected_at' =>
+                    now()
             ]);
 
             /*
             |--------------------------------------------------------------------------
-            | UPDATE LOAN TOTALS
+            | UPDATE LOAN
             |--------------------------------------------------------------------------
             */
 
-            $loan->total_paid += $request->amount_paid;
+            $loan->total_paid +=
+                $request->amount_paid;
 
-            $loan->pending_amount -= $request->amount_paid;
+            $loan->pending_amount -=
+                $request->amount_paid;
 
             /*
             |--------------------------------------------------------------------------
-            | CLOSE LOAN IF FULLY PAID
+            | CLOSE LOAN
             |--------------------------------------------------------------------------
             */
 
@@ -163,9 +227,11 @@ class CollectionController extends Controller
 
                 'status' => true,
 
-                'message' => 'Collection added successfully',
+                'message' =>
+                    'Collection added successfully',
 
-                'data' => $collection
+                'data' =>
+                    $collection
 
             ], 201);
 
@@ -177,9 +243,11 @@ class CollectionController extends Controller
 
                 'status' => false,
 
-                'message' => 'Something went wrong',
+                'message' =>
+                    'Something went wrong',
 
-                'error' => $e->getMessage()
+                'error' =>
+                    $e->getMessage()
 
             ], 500);
         }
@@ -193,10 +261,28 @@ class CollectionController extends Controller
 
     public function show($id)
     {
-        $collection = Collection::with([
+        $user = auth()->user();
+
+        $query = Collection::with([
             'loan',
             'collector'
-        ])->find($id);
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | ROLE FILTER
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->role === 'field_agent') {
+
+            $query->where(
+                'collected_by',
+                $user->id
+            );
+        }
+
+        $collection = $query->find($id);
 
         if (!$collection) {
 
@@ -204,7 +290,8 @@ class CollectionController extends Controller
 
                 'status' => false,
 
-                'message' => 'Collection not found'
+                'message' =>
+                    'Collection not found'
 
             ], 404);
         }
@@ -218,47 +305,93 @@ class CollectionController extends Controller
         ], 200);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE COLLECTION
+    |--------------------------------------------------------------------------
+    */
+
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
 
         try {
 
-            $collection = Collection::find($id);
+            $user = auth()->user();
+
+            $query = Collection::query();
+
+            /*
+            |--------------------------------------------------------------------------
+            | ROLE FILTER
+            |--------------------------------------------------------------------------
+            */
+
+            if ($user->role === 'field_agent') {
+
+                $query->where(
+                    'collected_by',
+                    $user->id
+                );
+            }
+
+            $collection = $query->find($id);
 
             if (!$collection) {
+
                 return response()->json([
+
                     'status' => false,
-                    'message' => 'Collection not found'
+
+                    'message' =>
+                        'Collection not found'
+
                 ], 404);
             }
 
-            $loan = Loan::find($collection->loan_id);
+            $loan = Loan::find(
+                $collection->loan_id
+            );
 
             if (!$loan) {
+
                 return response()->json([
+
                     'status' => false,
-                    'message' => 'Loan not found'
+
+                    'message' =>
+                        'Loan not found'
+
                 ], 404);
             }
 
             /*
             |--------------------------------------------------------------------------
-            | REVERT OLD AMOUNT FROM LOAN
+            | REVERT OLD AMOUNT
             |--------------------------------------------------------------------------
             */
-            $loan->total_paid -= $collection->amount_paid;
-            $loan->pending_amount += $collection->amount_paid;
+
+            $loan->total_paid -=
+                $collection->amount_paid;
+
+            $loan->pending_amount +=
+                $collection->amount_paid;
 
             /*
             |--------------------------------------------------------------------------
             | VALIDATE NEW AMOUNT
             |--------------------------------------------------------------------------
             */
+
             if ($request->amount_paid > $loan->pending_amount) {
+
                 return response()->json([
+
                     'status' => false,
-                    'message' => 'Amount exceeds pending amount'
+
+                    'message' =>
+                        'Amount exceeds pending amount'
+
                 ], 422);
             }
 
@@ -267,25 +400,48 @@ class CollectionController extends Controller
             | UPDATE COLLECTION
             |--------------------------------------------------------------------------
             */
+
             $collection->update([
-                'amount_paid' => $request->amount_paid,
-                'payment_mode' => $request->payment_mode,
-                'location' => $request->location,
-                'remarks' => $request->remarks,
+
+                'amount_paid' =>
+                    $request->amount_paid,
+
+                'payment_mode' =>
+                    $request->payment_mode,
+
+                'location' =>
+                    $request->location,
+
+                'remarks' =>
+                    $request->remarks,
             ]);
 
             /*
             |--------------------------------------------------------------------------
-            | APPLY NEW AMOUNT TO LOAN
+            | APPLY NEW AMOUNT
             |--------------------------------------------------------------------------
             */
-            $loan->total_paid += $request->amount_paid;
-            $loan->pending_amount -= $request->amount_paid;
+
+            $loan->total_paid +=
+                $request->amount_paid;
+
+            $loan->pending_amount -=
+                $request->amount_paid;
+
+            /*
+            |--------------------------------------------------------------------------
+            | LOAN STATUS
+            |--------------------------------------------------------------------------
+            */
 
             if ($loan->pending_amount <= 0) {
+
                 $loan->status = 'closed';
+
                 $loan->pending_amount = 0;
+
             } else {
+
                 $loan->status = 'active';
             }
 
@@ -294,21 +450,40 @@ class CollectionController extends Controller
             DB::commit();
 
             return response()->json([
+
                 'status' => true,
-                'message' => 'Collection updated successfully',
-                'data' => $collection
+
+                'message' =>
+                    'Collection updated successfully',
+
+                'data' =>
+                    $collection
+
             ], 200);
 
         } catch (\Exception $e) {
+
             DB::rollBack();
 
             return response()->json([
+
                 'status' => false,
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage()
+
+                'message' =>
+                    'Something went wrong',
+
+                'error' =>
+                    $e->getMessage()
+
             ], 500);
         }
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE COLLECTION
+    |--------------------------------------------------------------------------
+    */
 
     public function destroy($id)
     {
@@ -316,16 +491,41 @@ class CollectionController extends Controller
 
         try {
 
-            $collection = Collection::find($id);
+            $user = auth()->user();
+
+            $query = Collection::query();
+
+            /*
+            |--------------------------------------------------------------------------
+            | ROLE FILTER
+            |--------------------------------------------------------------------------
+            */
+
+            if ($user->role === 'field_agent') {
+
+                $query->where(
+                    'collected_by',
+                    $user->id
+                );
+            }
+
+            $collection = $query->find($id);
 
             if (!$collection) {
+
                 return response()->json([
+
                     'status' => false,
-                    'message' => 'Collection not found'
+
+                    'message' =>
+                        'Collection not found'
+
                 ], 404);
             }
 
-            $loan = Loan::find($collection->loan_id);
+            $loan = Loan::find(
+                $collection->loan_id
+            );
 
             if ($loan) {
 
@@ -334,8 +534,12 @@ class CollectionController extends Controller
                 | REVERSE LOAN BALANCE
                 |--------------------------------------------------------------------------
                 */
-                $loan->total_paid -= $collection->amount_paid;
-                $loan->pending_amount += $collection->amount_paid;
+
+                $loan->total_paid -=
+                    $collection->amount_paid;
+
+                $loan->pending_amount +=
+                    $collection->amount_paid;
 
                 $loan->status = 'active';
 
@@ -347,17 +551,28 @@ class CollectionController extends Controller
             DB::commit();
 
             return response()->json([
+
                 'status' => true,
-                'message' => 'Collection deleted successfully'
+
+                'message' =>
+                    'Collection deleted successfully'
+
             ], 200);
 
         } catch (\Exception $e) {
+
             DB::rollBack();
 
             return response()->json([
+
                 'status' => false,
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage()
+
+                'message' =>
+                    'Something went wrong',
+
+                'error' =>
+                    $e->getMessage()
+
             ], 500);
         }
     }
