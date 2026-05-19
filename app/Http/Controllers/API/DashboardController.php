@@ -17,43 +17,212 @@ class DashboardController extends Controller
     */
 
     public function summary()
-    {
-        $totalLoans = Loan::count();
+{
+    /*
+    |--------------------------------------------------------------------------
+    | BASIC STATS
+    |--------------------------------------------------------------------------
+    */
 
-        $activeLoans = Loan::where('status', 'active')->count();
+    $totalLoans = Loan::count();
 
-        $closedLoans = Loan::where('status', 'closed')->count();
+    $activeLoans = Loan::where(
+        'status',
+        'active'
+    )->count();
 
-        $totalCollectedToday = Collection::whereDate(
-            'collected_at',
-            today()
+    $closedLoans = Loan::where(
+        'status',
+        'closed'
+    )->count();
+
+    $totalCollectedToday =
+    Collection::whereDate(
+        'created_at',
+        today()
+    )->sum('amount_paid');
+
+    $totalPendingAmount =
+        Loan::sum('pending_amount');
+
+    $totalCollection =
+        Collection::sum('amount_paid');
+
+    /*
+    |--------------------------------------------------------------------------
+    | PAYMENT MODE COLLECTION
+    |--------------------------------------------------------------------------
+    */
+
+    $cashCollection =
+        Collection::where(
+            'payment_mode',
+            'cash'
         )->sum('amount_paid');
 
-        $totalPendingAmount = Loan::sum('pending_amount');
+    $upiCollection =
+        Collection::where(
+            'payment_mode',
+            'upi'
+        )->sum('amount_paid');
 
-        $totalCollection = Collection::sum('amount_paid');
+    $cardCollection =
+        Collection::where(
+            'payment_mode',
+            'card'
+        )->sum('amount_paid');
 
-        return response()->json([
+    /*
+    |--------------------------------------------------------------------------
+    | COLLECTION TREND
+    |--------------------------------------------------------------------------
+    */
 
-            'status' => true,
+    $collectionTrends =
+        Collection::select(
 
-            'data' => [
+            DB::raw(
+                'DATE(collected_at) as date'
+            ),
 
-                'total_loans' => $totalLoans,
+            DB::raw(
+                'SUM(amount_paid) as amount'
+            )
 
-                'active_loans' => $activeLoans,
+        )
+        ->groupBy(
+            DB::raw(
+                'DATE(collected_at)'
+            )
+        )
+        ->orderBy('date')
+        ->get();
 
-                'closed_loans' => $closedLoans,
+    /*
+    |--------------------------------------------------------------------------
+    | RECENT COLLECTIONS
+    |--------------------------------------------------------------------------
+    */
 
-                'total_collected_today' => $totalCollectedToday,
+    $recentCollections =
+        Collection::with('loan')
+        ->latest()
+        ->take(5)
+        ->get();
 
-                'total_pending_amount' => $totalPendingAmount,
+    /*
+    |--------------------------------------------------------------------------
+    | BEST COLLECTION TIME
+    |--------------------------------------------------------------------------
+    */
 
-                'total_collection' => $totalCollection
-            ]
+    $bestHour =
+        Collection::select(
 
-        ], 200);
-    }
+            DB::raw(
+                'HOUR(collected_at) as hour'
+            ),
+
+            DB::raw(
+                'COUNT(*) as total'
+            )
+
+        )
+        ->groupBy(
+            DB::raw(
+                'HOUR(collected_at)'
+            )
+        )
+        ->orderByDesc('total')
+        ->first();
+
+    $bestCollectionTime =
+        $bestHour
+        ? date(
+            'h A',
+            strtotime(
+                $bestHour->hour . ':00'
+            )
+          )
+          . ' - '
+          . date(
+            'h A',
+            strtotime(
+                ($bestHour->hour + 2)
+                . ':00'
+            )
+          )
+        : 'No Data';
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+
+        'status' => true,
+
+        'data' => [
+
+            /*
+            |--------------------------------------------------------------------------
+            | BASIC STATS
+            |--------------------------------------------------------------------------
+            */
+
+            'total_loans' =>
+                $totalLoans,
+
+            'active_loans' =>
+                $activeLoans,
+
+            'closed_loans' =>
+                $closedLoans,
+
+            'total_collected_today' =>
+                $totalCollectedToday,
+
+            'total_pending_amount' =>
+                $totalPendingAmount,
+
+            'total_collection' =>
+                $totalCollection,
+
+            /*
+            |--------------------------------------------------------------------------
+            | CHART DATA
+            |--------------------------------------------------------------------------
+            */
+
+            'cash_collection' =>
+                $cashCollection,
+
+            'upi_collection' =>
+                $upiCollection,
+
+            'card_collection' =>
+                $cardCollection,
+
+            'collection_trends' =>
+                $collectionTrends,
+
+            'recent_collections' =>
+                $recentCollections,
+
+            /*
+            |--------------------------------------------------------------------------
+            | ADVANCED FEATURE
+            |--------------------------------------------------------------------------
+            */
+
+            'best_collection_time' =>
+                $bestCollectionTime,
+        ]
+
+    ], 200);
+}
 
     /*
     |--------------------------------------------------------------------------

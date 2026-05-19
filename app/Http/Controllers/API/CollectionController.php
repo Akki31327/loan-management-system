@@ -46,12 +46,17 @@ class CollectionController extends Controller
         $collections = $query->latest()->paginate(10);
 
         return response()->json([
-
             'status' => true,
-
             'message' => 'Collection list fetched successfully',
 
-            'data' => $collections
+            'data' => $collections->items(),
+
+            'pagination' => [
+                'current_page' => $collections->currentPage(),
+                'last_page' => $collections->lastPage(),
+                'per_page' => $collections->perPage(),
+                'total' => $collections->total(),
+            ]
 
         ], 200);
     }
@@ -211,5 +216,149 @@ class CollectionController extends Controller
             'data' => $collection
 
         ], 200);
+    }
+
+    public function update(Request $request, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            $collection = Collection::find($id);
+
+            if (!$collection) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Collection not found'
+                ], 404);
+            }
+
+            $loan = Loan::find($collection->loan_id);
+
+            if (!$loan) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Loan not found'
+                ], 404);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | REVERT OLD AMOUNT FROM LOAN
+            |--------------------------------------------------------------------------
+            */
+            $loan->total_paid -= $collection->amount_paid;
+            $loan->pending_amount += $collection->amount_paid;
+
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDATE NEW AMOUNT
+            |--------------------------------------------------------------------------
+            */
+            if ($request->amount_paid > $loan->pending_amount) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Amount exceeds pending amount'
+                ], 422);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE COLLECTION
+            |--------------------------------------------------------------------------
+            */
+            $collection->update([
+                'amount_paid' => $request->amount_paid,
+                'payment_mode' => $request->payment_mode,
+                'location' => $request->location,
+                'remarks' => $request->remarks,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | APPLY NEW AMOUNT TO LOAN
+            |--------------------------------------------------------------------------
+            */
+            $loan->total_paid += $request->amount_paid;
+            $loan->pending_amount -= $request->amount_paid;
+
+            if ($loan->pending_amount <= 0) {
+                $loan->status = 'closed';
+                $loan->pending_amount = 0;
+            } else {
+                $loan->status = 'active';
+            }
+
+            $loan->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Collection updated successfully',
+                'data' => $collection
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            $collection = Collection::find($id);
+
+            if (!$collection) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Collection not found'
+                ], 404);
+            }
+
+            $loan = Loan::find($collection->loan_id);
+
+            if ($loan) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | REVERSE LOAN BALANCE
+                |--------------------------------------------------------------------------
+                */
+                $loan->total_paid -= $collection->amount_paid;
+                $loan->pending_amount += $collection->amount_paid;
+
+                $loan->status = 'active';
+
+                $loan->save();
+            }
+
+            $collection->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Collection deleted successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

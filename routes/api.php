@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/collections/{id}', [CollectionController::class, 'show']);
 
+    Route::put('/collections/{id}', [CollectionController::class, 'update']);
+
     Route::prefix('dashboard')->group(function () {
 
     Route::get('/summary', [
@@ -71,6 +73,12 @@ Route::middleware('auth:sanctum')->group(function () {
     ]);
 });
 
+Route::get('/loans', [LoanController::class, 'index']);
+
+    Route::get('/loans/{id}', [LoanController::class, 'show']);
+
+    Route::get('/loans-all', [LoanController::class, 'allLoans']);
+
     /*
     |--------------------------------------------------------------------------
     | ADMIN ONLY
@@ -85,19 +93,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // Change Role
         Route::post('/change-role', [AuthController::class, 'changeRole']);
 
+        Route::delete('/collections/{id}', [CollectionController::class, 'destroy']);
+
         /*
     |--------------------------------------------------------------------------
     | LOAN MANAGEMENT
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/loans', [LoanController::class, 'index']);
+    
 
     Route::post('/loans', [LoanController::class, 'store']);
 
-    Route::get('/loans/{id}', [LoanController::class, 'show']);
 
-    Route::post('/loans/{id}', [LoanController::class, 'update']);
+    Route::put('/loans/{id}', [LoanController::class, 'update']);
 
     Route::delete('/loans/{id}', [LoanController::class, 'destroy']);
     });

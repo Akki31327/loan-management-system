@@ -11,6 +11,13 @@ class StoreCollectionRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'payment_mode' => strtolower(trim($this->payment_mode))
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -19,7 +26,7 @@ class StoreCollectionRequest extends FormRequest
 
             'amount_paid' => 'required|numeric|min:1',
 
-            'payment_mode' => 'required|in:cash,upi,card',
+            'payment_mode' => 'required|in:cash,upi,bank_transfer',
 
             'location' => 'nullable|string|max:255',
 

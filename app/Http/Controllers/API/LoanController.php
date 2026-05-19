@@ -54,17 +54,21 @@ class LoanController extends Controller
         | PAGINATION
         |--------------------------------------------------------------------------
         */
+                
+        $perPage = $request->per_page ?? 10;
 
-        $loans = $query->latest()->paginate(10);
+        $loans = $query->latest()->paginate($perPage);
 
         return response()->json([
-
             'status' => true,
-
             'message' => 'Loan list fetched successfully',
-
-            'data' => $loans
-
+            'data' => $loans->items(),
+            'pagination' => [
+                'current_page' => $loans->currentPage(),
+                'last_page' => $loans->lastPage(),
+                'per_page' => $loans->perPage(),
+                'total' => $loans->total(),
+            ]
         ], 200);
     }
 
@@ -217,5 +221,17 @@ class LoanController extends Controller
             'message' => 'Loan deleted successfully'
 
         ], 200);
+    }
+
+    public function allLoans()
+    {
+        $loans = Loan::where('status', 'active')
+            ->select('id', 'loan_no', 'customer_name', 'pending_amount')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $loans
+        ]);
     }
 }

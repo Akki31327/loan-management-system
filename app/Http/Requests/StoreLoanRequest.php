@@ -19,7 +19,7 @@ class StoreLoanRequest extends FormRequest
 
             'customer_name' => 'required|string|max:255',
 
-            'mobile' => 'required|digits:10',
+            'mobile' => 'required|digits:10|max:10',
 
             'address' => 'required|string',
 
