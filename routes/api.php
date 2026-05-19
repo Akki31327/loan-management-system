@@ -5,38 +5,18 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\LoanController;
 use App\Http\Controllers\API\CollectionController;
 use App\Http\Controllers\API\DashboardController;
-/*
-|--------------------------------------------------------------------------
-| Public Routes
-|--------------------------------------------------------------------------
-*/
+
 
 Route::post('/login', [AuthController::class, 'login']);
 
-/*
-|--------------------------------------------------------------------------
-| Protected Routes
-|--------------------------------------------------------------------------
-*/
-
 Route::middleware('auth:sanctum')->group(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | COMMON
-    |--------------------------------------------------------------------------
-    */
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/profile', [AuthController::class, 'profile']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | COLLECTION MANAGEMENT
-    |--------------------------------------------------------------------------
-    */
 
+    // COLLECTION MANAGEMENT
     Route::get('/collections', [CollectionController::class, 'index']);
 
     Route::post('/collections', [CollectionController::class, 'store']);
@@ -45,46 +25,45 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::put('/collections/{id}', [CollectionController::class, 'update']);
 
-    Route::prefix('dashboard')->group(function () {
+    Route::prefix('dashboard')->group(function () 
+    {
 
-    Route::get('/summary', [
-        DashboardController::class,
-        'summary'
-    ]);
+                Route::get('/summary', [
+                    DashboardController::class,
+                    'summary'
+                ]);
 
-    Route::get('/payment-mode', [
-        DashboardController::class,
-        'paymentModeCollection'
-    ]);
+                Route::get('/payment-mode', [
+                    DashboardController::class,
+                    'paymentModeCollection'
+                ]);
 
-    Route::get('/monthly-trend', [
-        DashboardController::class,
-        'monthlyTrend'
-    ]);
+                Route::get('/monthly-trend', [
+                    DashboardController::class,
+                    'monthlyTrend'
+                ]);
 
-    Route::get('/agent-performance', [
-        DashboardController::class,
-        'agentPerformance'
-    ]);
+                Route::get('/agent-performance', [
+                    DashboardController::class,
+                    'agentPerformance'
+                ]);
 
-    Route::get('/best-time-slot', [
-        DashboardController::class,
-        'bestTimeSlot'
-    ]);
-});
+                Route::get('/best-time-slot', [
+                    DashboardController::class,
+                    'bestTimeSlot'
+                ]);
+    });
 
-Route::get('/loans', [LoanController::class, 'index']);
+
+    // LOAN MANAGEMENT
+    Route::get('/loans', [LoanController::class, 'index']);
 
     Route::get('/loans/{id}', [LoanController::class, 'show']);
 
     Route::get('/loans-all', [LoanController::class, 'allLoans']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADMIN ONLY
-    |--------------------------------------------------------------------------
-    */
 
+    // ADMIN ONLY
     Route::middleware('role:admin')->group(function () {
 
         // Register User
@@ -95,20 +74,12 @@ Route::get('/loans', [LoanController::class, 'index']);
 
         Route::delete('/collections/{id}', [CollectionController::class, 'destroy']);
 
-        /*
-    |--------------------------------------------------------------------------
-    | LOAN MANAGEMENT
-    |--------------------------------------------------------------------------
-    */
+       // LOAN MANAGEMENT
+        Route::post('/loans', [LoanController::class, 'store']);
 
-    
+        Route::put('/loans/{id}', [LoanController::class, 'update']);
 
-    Route::post('/loans', [LoanController::class, 'store']);
-
-
-    Route::put('/loans/{id}', [LoanController::class, 'update']);
-
-    Route::delete('/loans/{id}', [LoanController::class, 'destroy']);
+        Route::delete('/loans/{id}', [LoanController::class, 'destroy']);
     });
 });
 

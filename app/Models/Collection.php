@@ -20,12 +20,6 @@ class Collection extends Model
         'remarks'
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | RELATIONSHIPS
-    |--------------------------------------------------------------------------
-    */
-
     public function loan()
     {
         return $this->belongsTo(Loan::class);

@@ -11,12 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class CollectionController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | LIST COLLECTIONS
-    |--------------------------------------------------------------------------
-    */
 
+    // LIST COLLECTIONS
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -26,12 +22,8 @@ class CollectionController extends Controller
             'collector'
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | ROLE FILTER
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // ROLE FILTER
         if ($user->role === 'field_agent') {
 
             $query->where(
@@ -40,12 +32,8 @@ class CollectionController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | PAYMENT MODE FILTER
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // PAYMENT MODE FILTER
         if ($request->payment_mode) {
 
             $query->where(
@@ -54,12 +42,8 @@ class CollectionController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | DATE FILTER
-        |--------------------------------------------------------------------------
-        */
-
+      
+        // DATE FILTER
         if ($request->date) {
 
             $query->whereDate(
@@ -99,24 +83,16 @@ class CollectionController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ADD COLLECTION
-    |--------------------------------------------------------------------------
-    */
-
+    
+    // ADD COLLECTION
     public function store(StoreCollectionRequest $request)
     {
         DB::beginTransaction();
 
         try {
 
-            /*
-            |--------------------------------------------------------------------------
-            | FIND LOAN
-            |--------------------------------------------------------------------------
-            */
-
+           
+            // FIND LOAN
             $loan = Loan::find($request->loan_id);
 
             if (!$loan) {
@@ -130,12 +106,8 @@ class CollectionController extends Controller
                 ], 404);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | CHECK CLOSED LOAN
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // CHECK CLOSED LOAN
             if ($loan->status === 'closed') {
 
                 return response()->json([
@@ -147,12 +119,8 @@ class CollectionController extends Controller
                 ], 422);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | VALIDATE PENDING AMOUNT
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // VALIDATE PENDING AMOUNT
             if ($request->amount_paid > $loan->pending_amount) {
 
                 return response()->json([
@@ -164,12 +132,7 @@ class CollectionController extends Controller
                 ], 422);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | CREATE COLLECTION
-            |--------------------------------------------------------------------------
-            */
-
+            // CREATE COLLECTION
             $collection = Collection::create([
 
                 'loan_id' =>
@@ -194,24 +157,16 @@ class CollectionController extends Controller
                     now()
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | UPDATE LOAN
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // UPDATE LOAN
             $loan->total_paid +=
                 $request->amount_paid;
 
             $loan->pending_amount -=
                 $request->amount_paid;
 
-            /*
-            |--------------------------------------------------------------------------
-            | CLOSE LOAN
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // CLOSE LOAN
             if ($loan->pending_amount <= 0) {
 
                 $loan->status = 'closed';
@@ -253,12 +208,8 @@ class CollectionController extends Controller
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | COLLECTION DETAILS
-    |--------------------------------------------------------------------------
-    */
-
+    
+    // COLLECTION DETAILS
     public function show($id)
     {
         $user = auth()->user();
@@ -268,12 +219,8 @@ class CollectionController extends Controller
             'collector'
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | ROLE FILTER
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // ROLE FILTER
         if ($user->role === 'field_agent') {
 
             $query->where(
@@ -305,12 +252,8 @@ class CollectionController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE COLLECTION
-    |--------------------------------------------------------------------------
-    */
-
+    
+    // UPDATE COLLECTION
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
@@ -321,11 +264,9 @@ class CollectionController extends Controller
 
             $query = Collection::query();
 
-            /*
-            |--------------------------------------------------------------------------
-            | ROLE FILTER
-            |--------------------------------------------------------------------------
-            */
+            
+            // ROLE FILTER
+            
 
             if ($user->role === 'field_agent') {
 
@@ -365,24 +306,16 @@ class CollectionController extends Controller
                 ], 404);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | REVERT OLD AMOUNT
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // REVERT OLD AMOUNT
             $loan->total_paid -=
                 $collection->amount_paid;
 
             $loan->pending_amount +=
                 $collection->amount_paid;
 
-            /*
-            |--------------------------------------------------------------------------
-            | VALIDATE NEW AMOUNT
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // VALIDATE NEW AMOUNT
             if ($request->amount_paid > $loan->pending_amount) {
 
                 return response()->json([
@@ -395,12 +328,8 @@ class CollectionController extends Controller
                 ], 422);
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | UPDATE COLLECTION
-            |--------------------------------------------------------------------------
-            */
-
+            
+            // UPDATE COLLECTION
             $collection->update([
 
                 'amount_paid' =>
@@ -416,24 +345,15 @@ class CollectionController extends Controller
                     $request->remarks,
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | APPLY NEW AMOUNT
-            |--------------------------------------------------------------------------
-            */
-
+         
+            // APPLY NEW AMOUNT
             $loan->total_paid +=
                 $request->amount_paid;
 
             $loan->pending_amount -=
                 $request->amount_paid;
 
-            /*
-            |--------------------------------------------------------------------------
-            | LOAN STATUS
-            |--------------------------------------------------------------------------
-            */
-
+            // LOAN STATUS
             if ($loan->pending_amount <= 0) {
 
                 $loan->status = 'closed';
@@ -479,12 +399,8 @@ class CollectionController extends Controller
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DELETE COLLECTION
-    |--------------------------------------------------------------------------
-    */
-
+   
+//delect collection
     public function destroy($id)
     {
         DB::beginTransaction();
@@ -494,12 +410,6 @@ class CollectionController extends Controller
             $user = auth()->user();
 
             $query = Collection::query();
-
-            /*
-            |--------------------------------------------------------------------------
-            | ROLE FILTER
-            |--------------------------------------------------------------------------
-            */
 
             if ($user->role === 'field_agent') {
 
@@ -528,12 +438,6 @@ class CollectionController extends Controller
             );
 
             if ($loan) {
-
-                /*
-                |--------------------------------------------------------------------------
-                | REVERSE LOAN BALANCE
-                |--------------------------------------------------------------------------
-                */
 
                 $loan->total_paid -=
                     $collection->amount_paid;

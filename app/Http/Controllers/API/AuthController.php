@@ -12,12 +12,7 @@ use App\Http\Requests\ChangeRoleRequest;
 
 class AuthController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | LOGIN API
-    |--------------------------------------------------------------------------
-    */
-
+   //login api
     public function login(LoginRequest $request)
     {
         $user = User::where('email', $request->email)->first();
@@ -69,12 +64,8 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | LOGOUT API
-    |--------------------------------------------------------------------------
-    */
-
+    
+//logout api
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -85,12 +76,8 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | PROFILE API
-    |--------------------------------------------------------------------------
-    */
 
+//agent profile view
     public function profile(Request $request)
     {
         return response()->json([
@@ -99,8 +86,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    //register 
-
+    //register agent and admin
     public function register(RegisterRequest $request)
     {
         $user = User::create([
@@ -132,8 +118,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // change role 
-
+    // change role rights to admin
     public function changeRole(ChangeRoleRequest $request)
     {
         $user = User::find($request->user_id);

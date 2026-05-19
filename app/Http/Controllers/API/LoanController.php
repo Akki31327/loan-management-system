@@ -10,21 +10,11 @@ use Illuminate\Http\Request;
 
 class LoanController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | LIST LOANS
-    |--------------------------------------------------------------------------
-    */
+    
 
     public function index(Request $request)
     {
         $query = Loan::query();
-
-        /*
-        |--------------------------------------------------------------------------
-        | SEARCH FILTER
-        |--------------------------------------------------------------------------
-        */
 
         if ($request->search) {
 
@@ -38,23 +28,11 @@ class LoanController extends Controller
             });
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | STATUS FILTER
-        |--------------------------------------------------------------------------
-        */
-
         if ($request->status) {
 
             $query->where('status', $request->status);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | PAGINATION
-        |--------------------------------------------------------------------------
-        */
-                
         $perPage = $request->per_page ?? 10;
 
         $loans = $query->latest()->paginate($perPage);
@@ -72,12 +50,8 @@ class LoanController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE LOAN
-    |--------------------------------------------------------------------------
-    */
 
+    // CREATE LOAN
     public function store(StoreLoanRequest $request)
     {
         $loan = Loan::create([
@@ -114,12 +88,8 @@ class LoanController extends Controller
         ], 201);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | LOAN DETAILS
-    |--------------------------------------------------------------------------
-    */
 
+    // LOAN DETAILS
     public function show($id)
     {
         $loan = Loan::find($id);
@@ -144,12 +114,8 @@ class LoanController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE LOAN
-    |--------------------------------------------------------------------------
-    */
-
+    
+    // UPDATE LOAN
     public function update(UpdateLoanRequest $request, $id)
     {
         $loan = Loan::find($id);
@@ -191,12 +157,8 @@ class LoanController extends Controller
         ], 200);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DELETE LOAN
-    |--------------------------------------------------------------------------
-    */
-
+   
+    // DELETE LOAN
     public function destroy($id)
     {
         $loan = Loan::find($id);

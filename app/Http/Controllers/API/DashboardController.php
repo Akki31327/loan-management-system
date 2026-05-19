@@ -14,11 +14,9 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        /*
-        |--------------------------------------------------------------------------
-        | LOAN DATA (VISIBLE TO ALL)
-        |--------------------------------------------------------------------------
-        */
+        
+        // LOAN DATA (VISIBLE TO ALL)
+       
 
         $totalLoans = Loan::count();
 
@@ -35,12 +33,8 @@ class DashboardController extends Controller
         $totalPendingAmount =
             Loan::sum('pending_amount');
 
-        /*
-        |--------------------------------------------------------------------------
-        | COLLECTION QUERY
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // COLLECTION QUERY
         $collectionQuery = Collection::query();
 
         // If agent -> only own collections
@@ -52,12 +46,8 @@ class DashboardController extends Controller
             );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | COLLECTION STATS
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // COLLECTION STATS
         $totalCollectedToday =
             (clone $collectionQuery)
             ->whereDate(
@@ -70,12 +60,8 @@ class DashboardController extends Controller
             (clone $collectionQuery)
             ->sum('amount_paid');
 
-        /*
-        |--------------------------------------------------------------------------
-        | PAYMENT MODE
-        |--------------------------------------------------------------------------
-        */
 
+        // PAYMENT MODE
         $cashCollection =
             (clone $collectionQuery)
             ->where('payment_mode', 'cash')
@@ -91,12 +77,8 @@ class DashboardController extends Controller
             ->where('payment_mode', 'card')
             ->sum('amount_paid');
 
-        /*
-        |--------------------------------------------------------------------------
-        | COLLECTION TREND
-        |--------------------------------------------------------------------------
-        */
-
+       
+        // COLLECTION TREND
         $collectionTrends =
             (clone $collectionQuery)
             ->select(
@@ -118,12 +100,8 @@ class DashboardController extends Controller
             ->orderBy('date')
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | RECENT COLLECTIONS
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // RECENT COLLECTIONS
         $recentCollections =
             (clone $collectionQuery)
             ->with('loan')
@@ -131,12 +109,8 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | BEST COLLECTION TIME
-        |--------------------------------------------------------------------------
-        */
-
+        
+        // BEST COLLECTION TIME
         $bestHour =
             (clone $collectionQuery)
             ->select(
@@ -176,12 +150,7 @@ class DashboardController extends Controller
               )
             : 'No Data';
 
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
-
+        
         return response()->json([
 
             'status' => true,

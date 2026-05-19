@@ -24,12 +24,6 @@ class Loan extends Model
         'created_by'
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | RELATIONSHIPS
-    |--------------------------------------------------------------------------
-    */
-
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
